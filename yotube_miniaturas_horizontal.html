@@ -2,98 +2,99 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Últimos Videos</title>
+<title>Overlay YouTube Canal RSS Automático</title>
 <style>
-body {
-  margin: 0;
-  background: #000;
-  overflow: hidden;
-  font-family: Arial, sans-serif;
-}
+  body {
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
 
-.wrapper {
-  display: flex;
-  gap: 14px;
-  white-space: nowrap;
-  animation: scroll 20s linear infinite;
-}
+  .scroll-container {
+    display: flex;
+    width: 100%;
+    white-space: nowrap;
+    animation: scroll 50s linear infinite;
+  }
 
-.video {
-  width: min(220px, 25vw);
-  flex-shrink: 0;
-}
+  .item {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 30px;
+    background: rgba(0,0,0,0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+  }
 
-.video img {
-  width: 100%;
-  border-radius: 12px;
-  box-shadow: 0 0 12px rgba(0,0,0,0.6);
-  transition: transform 0.3s;
-  cursor: pointer;
-}
+  .item img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    margin-right: 10px;
+    border-radius: 5px;
+  }
 
-.video img:hover {
-  transform: scale(1.05);
-}
+  .item span {
+    color: #fff;
+    font-size: 16px;
+  }
 
-.title {
-  margin-top: 6px;
-  font-size: 12px;
-  color: white;
-  text-shadow: 0 0 5px black;
-  max-height: 32px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@keyframes scroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
+  @keyframes scroll {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
 </style>
 </head>
 <body>
-
-<div class="wrapper" id="videos"></div>
+  <div class="scroll-container" id="playlist"></div>
 
 <script>
-const API_KEY = "AIzaSyCw1sgSV_qCUSYgiUcYeq0pQUNZIuTdKb4"; 
-const CHANNEL_ID = "UCIbWfCngxTPu8Qp4VyN97XA";
-const MAX_VIDEOS = 6;
+  // Aquí pones el link de tu canal
+  const CHANNEL_ID = "UCIbWfCngxTPu8Qp4VyN97XA";
+  const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
 
-async function loadVideos() {
-  const container = document.getElementById("videos");
+  const container = document.getElementById('playlist');
 
-  try {
-    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet&order=date&maxResults=${MAX_VIDEOS}&type=video`);
-    const data = await res.json();
+  async function fetchRSS() {
+    try {
+      // Usamos un proxy público para evitar CORS
+      const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(RSS_URL)}`);
+      const data = await response.json();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(data.contents, "text/xml");
+      const entries = xml.querySelectorAll("entry");
 
-    if (!data.items || data.items.length === 0) throw new Error("No hay videos");
+      if(entries.length === 0) {
+        container.innerHTML = "<span style='color:white;'>No se encontraron videos.</span>";
+        return;
+      }
 
-    container.innerHTML = "";
+      // Convertimos a array y duplicamos para scroll infinito
+      const videos = Array.from(entries).map(entry => {
+        const title = entry.querySelector("title").textContent;
+        const videoId = entry.querySelector("yt\\:videoId").textContent;
+        return { id: videoId, title };
+      });
 
-    data.items.forEach(item => {
-      if (!item.id.videoId) return;
-      container.innerHTML += `
-        <div class="video">
-          <a href="https://www.youtube.com/watch?v=${item.id.videoId}" target="_blank">
-            <img src="https://img.youtube.com/vi/${item.id.videoId}/mqdefault.jpg" alt="${item.snippet.title}">
-          </a>
-          <div class="title">${item.snippet.title}</div>
-        </div>
-      `;
-    });
+      const items = videos.concat(videos);
 
-    // duplicamos para scroll infinito
-    container.innerHTML += container.innerHTML;
+      items.forEach(video => {
+        const thumbnail = `https://img.youtube.com/vi/${video.id}/default.jpg`;
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `<img src="${thumbnail}" alt="${video.title}"><span>${video.title}</span>`;
+        container.appendChild(div);
+      });
 
-  } catch (err) {
-    console.error("Error cargando videos:", err);
-    container.innerHTML = "<p style='color:white;'>No se pudieron cargar los videos.</p>";
+    } catch (e) {
+      console.error("Error al cargar RSS:", e);
+      container.innerHTML = "<span style='color:white;'>Error cargando videos.</span>";
+    }
   }
-}
 
-loadVideos();
+  fetchRSS();
 </script>
-
 </body>
 </html>
+
