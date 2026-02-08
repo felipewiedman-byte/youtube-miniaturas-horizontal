@@ -6,21 +6,20 @@
 <style>
 body {
   margin: 0;
-  background: transparent;
+  background: #000; /* transparente no se ve bien en algunos navegadores */
   overflow: hidden;
   font-family: Arial, sans-serif;
 }
 
 .wrapper {
-  width: 100%;
-  height: 100%;
   display: flex;
   gap: 14px;
+  white-space: nowrap;
   animation: scroll 20s linear infinite;
 }
 
 .video {
-  width: 220px;
+  width: min(220px, 25vw);
   flex-shrink: 0;
 }
 
@@ -28,6 +27,12 @@ body {
   width: 100%;
   border-radius: 12px;
   box-shadow: 0 0 12px rgba(0,0,0,0.6);
+  transition: transform 0.3s;
+  cursor: pointer;
+}
+
+.video img:hover {
+  transform: scale(1.05);
 }
 
 .title {
@@ -37,15 +42,15 @@ body {
   text-shadow: 0 0 5px black;
   max-height: 32px;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes scroll {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  100% { transform: translateX(-50%); } /* recorrer todo el contenedor duplicado */
 }
 </style>
 </head>
-
 <body>
 
 <div class="wrapper" id="videos"></div>
@@ -56,28 +61,35 @@ const API_KEY = "AIzaSyCw1sgSV_qCUSYgiUcYeq0pQUNZIuTdKb4"; // reemplaza con tu A
 const CHANNEL_ID = "UCIbWfCngxTPu8Qp4VyN97XA"; // tu canal
 const MAX_VIDEOS = 6; // cuántos videos mostrar
 
-// Llamada a la YouTube Data API v3
-fetch(`https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet&order=date&maxResults=${MAX_VIDEOS}&type=video`)
-  .then(res => res.json())
-  .then(data => {
+async function loadVideos() {
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet&order=date&maxResults=${MAX_VIDEOS}&type=video`);
+    const data = await res.json();
     const container = document.getElementById("videos");
     container.innerHTML = ""; // limpiamos contenido previo
 
     data.items.forEach(item => {
-      if (!item.id.videoId) return; // solo videos
-
-      container.innerHTML += `
+      if (!item.id.videoId) return;
+      const videoHTML = `
         <div class="video">
-          <img src="https://img.youtube.com/vi/${item.id.videoId}/mqdefault.jpg" alt="${item.snippet.title}">
+          <a href="https://www.youtube.com/watch?v=${item.id.videoId}" target="_blank">
+            <img src="https://img.youtube.com/vi/${item.id.videoId}/mqdefault.jpg" alt="${item.snippet.title}">
+          </a>
           <div class="title">${item.snippet.title}</div>
         </div>
       `;
+      container.innerHTML += videoHTML;
     });
 
     // duplicamos para scroll infinito
     container.innerHTML += container.innerHTML;
-  })
-  .catch(err => console.error("Error cargando videos:", err));
+
+  } catch (err) {
+    console.error("Error cargando videos:", err);
+  }
+}
+
+loadVideos();
 </script>
 
 </body>
