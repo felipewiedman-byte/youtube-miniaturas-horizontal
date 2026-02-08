@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Últimos Videos</title>
-
 <style>
 body {
   margin: 0;
@@ -52,29 +51,32 @@ body {
 <div class="wrapper" id="videos"></div>
 
 <script>
-const API_KEY = "AIzaSyCw1sgSV_qCUSYgiUcYeq0pQUNZIuTdKb4";
-const CHANNEL_ID = "UCIbWfCngxTPu8Qp4VyN97XA";
-const MAX_VIDEOS = 6;
+const API_KEY = "AIzaSyCw1sgSV_qCUSYgiUcYeq0pQUNZIuTdKb4"; // reemplaza con tu API Key
+const CHANNEL_ID = "UCIbWfCngxTPu8Qp4VyN97XA"; // tu canal
+const MAX_VIDEOS = 6; // cuántos videos mostrar
 
-fetch(`https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet&order=date&maxResults=${MAX_VIDEOS}`)
-.then(res => res.json())
-.then(data => {
-  const container = document.getElementById("videos");
+// Llamada a YouTube Data API v3
+fetch(`https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet&order=date&maxResults=${MAX_VIDEOS}&type=video`)
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById("videos");
+    container.innerHTML = ""; // limpiamos por si hay contenido previo
 
-  data.items.forEach(item => {
-    if (!item.id.videoId) return;
+    data.items.forEach(item => {
+      if (!item.id.videoId) return; // aseguramos que sea video
 
-    container.innerHTML += `
-      <div class="video">
-        <img src="${item.snippet.thumbnails.medium.url}">
-        <div class="title">${item.snippet.title}</div>
-      </div>
-    `;
-  });
+      container.innerHTML += `
+        <div class="video">
+          <img src="https://img.youtube.com/vi/${item.id.videoId}/mqdefault.jpg" alt="${item.snippet.title}">
+          <div class="title">${item.snippet.title}</div>
+        </div>
+      `;
+    });
 
-  // duplicamos para loop infinito
-  container.innerHTML += container.innerHTML;
-});
+    // duplicamos contenido para scroll infinito
+    container.innerHTML += container.innerHTML;
+  })
+  .catch(err => console.error("Error al cargar videos:", err));
 </script>
 
 </body>
